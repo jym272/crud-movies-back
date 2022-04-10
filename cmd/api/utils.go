@@ -30,8 +30,11 @@ func (app *Application) writeJSON(w http.ResponseWriter, status int, data interf
 	return nil
 }
 
-func (app *Application) writeError(w http.ResponseWriter, status int, err error) error {
-	return app.writeJSON(w, status, map[string]interface{}{
+func (app *Application) errorJSON(w http.ResponseWriter, status int, err error) {
+	errJSON := app.writeJSON(w, status, map[string]interface{}{
 		"error": err.Error(),
 	}, "")
+	if errJSON != nil {
+		app.logger.Println("errorJSON:", errJSON)
+	}
 }

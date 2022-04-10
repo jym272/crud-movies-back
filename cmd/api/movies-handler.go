@@ -1,11 +1,9 @@
 package main
 
 import (
-	"backend/models"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -16,25 +14,32 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 	if id, err := strconv.ParseInt(movieID, 10, 64); err == nil {
 		app.logger.Println("getOneMovie: " + movieID)
 		//create a dummy movie
-		movie := models.Movie{
-			ID:          id,
-			Title:       "The Godfather",
-			Year:        1972,
-			ReleaseDate: time.Date(1972, time.January, 24, 0, 0, 0, 0, time.UTC),
-			Runtime:     175,
-			MPAARating:  "R",
-			Rating:      9.2,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-			Director:    "Francis Ford Coppola",
-			Poster:      "https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg",
+		//movie := models.Movie{
+		//	ID:          id,
+		//	Title:       "The Godfather",
+		//	Year:        1972,
+		//	ReleaseDate: time.Date(1972, time.January, 24, 0, 0, 0, 0, time.UTC),
+		//	Runtime:     175,
+		//	MPAARating:  "R",
+		//	Rating:      9.2,
+		//	CreatedAt:   time.Now(),
+		//	UpdatedAt:   time.Now(),
+		//	Director:    "Francis Ford Coppola",
+		//	Poster:      "https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg",
+		//}
+		movie, err := app.models.DB.GetMovie(int(id))
+		if err != nil {
+			app.errorJSON(w, http.StatusNotFound, err)
+			app.logger.Println("getOneMovie: " + err.Error())
+			//http.Error(w, "Movie not found", http.StatusNotFound)
+			return
 		}
 		err = app.writeJSON(w, http.StatusOK, movie, "movie")
 		if err != nil {
 			app.logger.Println("getOneMovie: " + err.Error())
-			//app.writeError(w, http.StatusInternalServerError, err)
 		}
 	} else {
+		app.errorJSON(w, http.StatusBadRequest, err)
 		app.logger.Println("getOneMovie: " + err.Error())
 	}
 
