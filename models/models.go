@@ -23,31 +23,31 @@ func NewModels(db *sql.DB) *Models {
 
 //Movie es the type for the movie
 type Movie struct {
-	ID          int64        `json:"id"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	Year        int          `json:"year"`
-	ReleaseDate time.Time    `json:"release_date"`
-	Runtime     minutes      `json:"runtime"`
-	Rating      float32      `json:"rating"`
-	MPAARating  string       `json:"mpaa_rating"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	MovieGenres []MovieGenre `json:"-"`
+	ID          int64          `json:"id"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	Year        int            `json:"year"`
+	ReleaseDate time.Time      `json:"release_date"`
+	Runtime     minutes        `json:"runtime"`
+	Rating      float32        `json:"rating"`
+	MPAARating  string         `json:"mpaa_rating"`
+	CreatedAt   time.Time      `json:"-"`
+	UpdatedAt   time.Time      `json:"-"`
+	MovieGenres map[int]string `json:"genres"`
 }
 
 type Genre struct {
-	ID        int64     `json:"id"`
+	ID        int64     `json:"-"`
 	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type MovieGenre struct {
-	ID        int64     `json:"id"`
-	MovieID   int64     `json:"movie_id"`
-	GenreID   int64     `json:"genre_id"`
+	ID        int64     `json:"-"`
+	MovieID   int64     `json:"-"`
+	GenreID   int64     `json:"-"`
 	Genre     Genre     `json:"genre"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }

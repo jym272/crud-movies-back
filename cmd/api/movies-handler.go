@@ -12,21 +12,6 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 	movieID := ps.ByName("id")
 	//convert string to int64
 	if id, err := strconv.ParseInt(movieID, 10, 64); err == nil {
-		app.logger.Println("getOneMovie: " + movieID)
-		//create a dummy movie
-		//movie := models.Movie{
-		//	ID:          id,
-		//	Title:       "The Godfather",
-		//	Year:        1972,
-		//	ReleaseDate: time.Date(1972, time.January, 24, 0, 0, 0, 0, time.UTC),
-		//	Runtime:     175,
-		//	MPAARating:  "R",
-		//	Rating:      9.2,
-		//	CreatedAt:   time.Now(),
-		//	UpdatedAt:   time.Now(),
-		//	Director:    "Francis Ford Coppola",
-		//	Poster:      "https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg",
-		//}
 		movie, err := app.models.DB.GetMovie(int(id))
 		if err != nil {
 			app.errorJSON(w, http.StatusNotFound, err)
@@ -36,6 +21,7 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 		}
 		err = app.writeJSON(w, http.StatusOK, movie, "movie")
 		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
 			app.logger.Println("getOneMovie: " + err.Error())
 		}
 	} else {
@@ -47,14 +33,32 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 
 //get all movies
 func (app *Application) getAllMovies(w http.ResponseWriter, r *http.Request) {
-	//movies, err := app.movieStore.GetAll()
-	//if err != nil {
-	//	app.clientError(w, http.StatusNotFound)
-	//	return
-	//}
-	//
-	//// Render the template
-	//app.render(w, r, "movies.page.tmpl", &templateData{
-	//	Movies: movies,
-	//})
+	movies, err := app.models.DB.GetAll()
+	if err != nil {
+		app.errorJSON(w, http.StatusNotFound, err)
+		app.logger.Println("getAllMovies: " + err.Error())
+		//http.Error(w, "Movie not found", http.StatusNotFound)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, movies, "movies")
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("getAllMovies: " + err.Error())
+	}
+}
+
+//getGenres
+func (app *Application) getGenres(w http.ResponseWriter, r *http.Request) {
+	genres, err := app.models.DB.GetGenres()
+	if err != nil {
+		app.errorJSON(w, http.StatusNotFound, err)
+		app.logger.Println("getGenres: " + err.Error())
+		//http.Error(w, "Movie not found", http.StatusNotFound)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, genres, "genres")
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("getGenres: " + err.Error())
+	}
 }
