@@ -12,6 +12,7 @@ func (app *Application) routes() http.Handler {
 	router.GET("/v1/movie/:id", app.getOneMovie)
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.getAllMovies)
 	router.HandlerFunc(http.MethodGet, "/v1/genres", app.getGenres)
+	//router.GET("/v1/movies?genre=", app.getMoviesByGenre) //returns all movies with a specific genre
 
 	//router.GET("/api/v1/users", app.getUsers)
 	//router.GET("/api/v1/users/:id", app.getUser)

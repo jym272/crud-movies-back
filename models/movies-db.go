@@ -113,3 +113,49 @@ func (m *DBModel) GetGenres() ([]*Genre, error) {
 	}
 	return genres, nil
 }
+
+func (m *DBModel) GetMoviesByGenreWithID(genreID int64) ([]*Movie, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT movies.id, title, description, year, release_date, runtime, rating,mpaa_rating,movies.created_at, movies.updated_at FROM movies  INNER JOIN movies_genres ON movies.id = movies_genres.movie_id INNER JOIN genres ON movies_genres.genre_id = genres.id WHERE genre_id = $1 ORDER BY movies.title"
+	rows, err := m.DB.QueryContext(ctx, query, genreID)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(rows)
+	movies := make([]*Movie, 0)
+	for rows.Next() {
+		movie := &Movie{}
+
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		genres, err := getGenres(m, int(movie.ID), ctx)
+		if err != nil {
+			return nil, err
+		}
+		movie.MovieGenres = *genres
+
+		movies = append(movies, movie)
+	}
+	return movies, nil
+}
+
+func (m *DBModel) GetGenreNameByID(genreID int64) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT genre_name FROM genres WHERE id = $1"
+	var genreName string
+	err := m.DB.QueryRowContext(ctx, query, genreID).Scan(&genreName)
+	if err != nil {
+		return "", err
+	}
+	return genreName, nil
+}
