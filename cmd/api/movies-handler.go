@@ -97,6 +97,10 @@ func (app *Application) getGenres(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	type response struct {
+		Message string `json:"message"`
+		Status  int    `json:"status"`
+	}
 	//extract payload from the request
 	var movie models.Movie
 	err := json.NewDecoder(r.Body).Decode(&movie)
@@ -133,7 +137,12 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps 
 				app.logger.Println("editOneMovie: " + err.Error())
 				return
 			}
-			err = app.writeJSON(w, http.StatusOK, "success", "status")
+
+			_response := response{
+				Message: "Movie updated",
+				Status:  http.StatusOK,
+			}
+			err = app.writeJSON(w, http.StatusOK, _response, "")
 			if err != nil {
 				app.errorJSON(w, http.StatusInternalServerError, err)
 				app.logger.Println("getGenres: " + err.Error())
@@ -148,7 +157,11 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps 
 		app.logger.Println("editOneMovie: " + err.Error())
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, "success", "status")
+	_response := response{
+		Message: "Movie created",
+		Status:  http.StatusOK,
+	}
+	err = app.writeJSON(w, http.StatusOK, _response, "")
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
 		app.logger.Println("editOneMovie: " + err.Error())
