@@ -9,6 +9,7 @@ func (app *Application) routes() http.Handler {
 	router := httprouter.New()
 	router.HandlerFunc(http.MethodGet, "/status", app.statusHandler)
 	//router.HandlerFunc(http.MethodGet, "/v1/movie/:id", app.getOneMovie)
+	router.PUT("/v1/movie", app.editOneMovie) //update or create a movie
 	router.GET("/v1/movie/:id", app.getOneMovie)
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.getAllMovies)
 	router.HandlerFunc(http.MethodGet, "/v1/genres", app.getGenres)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"backend/models"
+	"encoding/json"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
@@ -12,7 +14,7 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 	movieID := ps.ByName("id")
 	//convert string to int64
 	if id, err := strconv.ParseInt(movieID, 10, 64); err == nil {
-		movie, err := app.models.DB.GetMovie(int(id))
+		movie, err := app.models.DB.GetMovie(id)
 		if err != nil {
 			app.errorJSON(w, http.StatusNotFound, err)
 			app.logger.Println("getOneMovie: " + err.Error())
@@ -91,5 +93,64 @@ func (app *Application) getGenres(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
 		app.logger.Println("getGenres: " + err.Error())
+	}
+}
+
+func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	//extract payload from the request
+	var movie models.Movie
+	err := json.NewDecoder(r.Body).Decode(&movie)
+
+	if err != nil {
+		app.errorJSON(w, http.StatusBadRequest, err)
+		app.logger.Println("editOneMovie: " + err.Error())
+		return
+	}
+	//extract year from movie.release_date
+	year, _, _ := movie.ReleaseDate.Date()
+	movie.Year = year
+
+	movieIDQuery := r.URL.Query().Get("id")
+	if movieIDQuery != "" {
+		parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
+		if err != nil {
+			app.errorJSON(w, http.StatusBadRequest, err)
+			app.logger.Println("editOneMovie: " + err.Error())
+			return
+		}
+		//check if the movie exists
+		exist, err := app.models.DB.MovieExists(parseMovieID)
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("editOneMovie: " + err.Error())
+			return
+		}
+		if exist {
+			//update the movie
+			err = app.models.DB.UpdateMovie(parseMovieID, &movie)
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("editOneMovie: " + err.Error())
+				return
+			}
+			err = app.writeJSON(w, http.StatusOK, "success", "status")
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("getGenres: " + err.Error())
+			}
+			return
+		}
+
+	} //create new movie: if there is no movieID in the query or if the movieID is not found in the database, or if the movieID 0 ->this id does not exist
+	err = app.models.DB.InsertMovie(&movie)
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("editOneMovie: " + err.Error())
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, "success", "status")
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("editOneMovie: " + err.Error())
 	}
 }
