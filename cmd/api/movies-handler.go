@@ -167,3 +167,57 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps 
 		app.logger.Println("editOneMovie: " + err.Error())
 	}
 }
+
+func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	type response struct {
+		Message string `json:"message"`
+		Status  int    `json:"status"`
+	}
+	movieIDQuery := r.URL.Query().Get("id")
+	if movieIDQuery != "" {
+		parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
+		if err != nil {
+			app.errorJSON(w, http.StatusBadRequest, err)
+			app.logger.Println("deleteOneMovie: " + err.Error())
+			return
+		}
+		//check if the movie exists
+		exist, err := app.models.DB.MovieExists(parseMovieID)
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("deleteOneMovie: " + err.Error())
+			return
+		}
+		if exist {
+			//delete the movie
+			err = app.models.DB.DeleteMovie(parseMovieID)
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("deleteOneMovie1: " + err.Error())
+				return
+			}
+			_response := response{
+				Message: "Movie deleted",
+				Status:  http.StatusOK,
+			}
+			err = app.writeJSON(w, http.StatusOK, _response, "")
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("deleteOneMovie: " + err.Error())
+			}
+			return
+		}
+
+	}
+	_response := response{
+		Message: "Movie not found",
+		Status:  http.StatusNotFound,
+	}
+	err := app.writeJSON(w, http.StatusNotFound, _response, "")
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("deleteOneMovie: " + err.Error())
+	}
+
+}

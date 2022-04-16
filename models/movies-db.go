@@ -227,3 +227,25 @@ func (m *DBModel) InsertMovie(movie *Movie) error {
 
 	return nil
 }
+
+func (m *DBModel) DeleteMovie(id int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	//first delete from movies_genres
+	query := "DELETE FROM movies_genres WHERE movie_id = $1"
+	_, err := m.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	//then delete from movies
+	query = "DELETE FROM movies WHERE id = $1"
+	_, err = m.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+
+
