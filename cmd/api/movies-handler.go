@@ -96,7 +96,7 @@ func (app *Application) getGenres(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		Message string `json:"message"`
 		Status  int    `json:"status"`
