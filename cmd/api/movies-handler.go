@@ -168,7 +168,7 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 
 	type response struct {
 		Message string `json:"message"`

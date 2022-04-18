@@ -61,7 +61,7 @@ func (app *Application) signinHandler(w http.ResponseWriter, r *http.Request, ps
 		app.logger.Println("signinHandler4: " + err.Error())
 		return
 	}
-	err = app.writeJSON(w, http.StatusOK, token, "token")
+	err = app.writeJSON(w, http.StatusOK, token, "jwt")
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
 		app.logger.Println("signinHandler5: " + err.Error())

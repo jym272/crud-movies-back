@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt"
 	"net/http"
 	"strings"
@@ -55,25 +54,34 @@ func (app *Application) checkToken(next http.Handler) http.Handler {
 
 		if token_.Valid {
 			if claims, ok := token_.Claims.(jwt.MapClaims); ok {
-				fmt.Println(claims["id"], claims["nbf"])
+				//fmt.Println(claims["id"], claims["nbf"])
 				//TODO: se peude usar extraer informacion del token respecto al usuario y router acorde a eso
+				//actuar, por ahora solo tengo un usuario valida hardcodedado, luego hay que chequear en la database
+				userID := claims["id"].(float64)
+				if userID == 10 { //valid user in tokens.go
+					next.ServeHTTP(w, r)
+					return
+				} else {
+					app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - invalid user"))
+					return
+				}
+
 			} else {
-				fmt.Println("Error parsing claims")
+				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - failed to parse claims"))
 			}
 
-			next.ServeHTTP(w, r)
 		} else if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - malformed token"))
+				app.errorJSON(w, http.StatusBadRequest, errors.New("unauthorized - malformed token"))
 				return
 			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - token expired"))
+				app.errorJSON(w, http.StatusForbidden, errors.New("unauthorized - token expired"))
 				return
 			} else if ve.Errors&(jwt.ValidationErrorAudience) != 0 {
-				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - invalid audience"))
+				app.errorJSON(w, http.StatusForbidden, errors.New("unauthorized - invalid audience"))
 				return
 			} else if ve.Errors&(jwt.ValidationErrorIssuer) != 0 {
-				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - invalid issuer"))
+				app.errorJSON(w, http.StatusForbidden, errors.New("unauthorized - invalid issuer"))
 				return
 			} else {
 				app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - failed to parse token"))
