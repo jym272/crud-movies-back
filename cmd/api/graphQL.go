@@ -6,6 +6,8 @@ import (
 	"github.com/graphql-go/graphql"
 	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -129,6 +131,32 @@ var fields = graphql.Fields{
 			return nil, nil
 		},
 	},
+	//get movies by genre id
+	"genre": &graphql.Field{
+		Type:        graphql.NewList(movieType),
+		Description: "Get movies by genre id",
+		Args: graphql.FieldConfigArgument{
+			"genreId": &graphql.ArgumentConfig{
+				Type: graphql.Int,
+			},
+		},
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			genreId, ok := p.Args["genreId"].(int)
+			if ok {
+				var results []*models.Movie
+				//
+				for _, movie := range movies {
+					for id := range movie.MovieGenres {
+						if genreId == id {
+							results = append(results, movie)
+						}
+					}
+				}
+				return results, nil
+			}
+			return nil, nil
+		},
+	},
 }
 
 func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +174,23 @@ func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
 		app.logger.Println("moviesGraphQL2: " + err.Error())
 		return
 	}
-	query := string(q)
+	query := string(q) //{genre(genreId: 3){id title}}
+
+	var genreId int
+
+	if strings.Contains(query, "genre(genreId:") {
+		re := regexp.MustCompile(`genreId: (\d+)`)
+		match := re.FindStringSubmatch(query)
+		if len(match) > 1 {
+			genreId, err = strconv.Atoi(match[1])
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("moviesGraphQL3: " + err.Error())
+				return
+			}
+		}
+
+	}
 
 	rootQuery := graphql.ObjectConfig{Name: "RootQuery", Fields: fields}
 	schemaConfig := graphql.SchemaConfig{Query: graphql.NewObject(rootQuery)}
@@ -159,6 +203,7 @@ func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
 
 	params := graphql.Params{Schema: schema, RequestString: query}
 	rJSON := graphql.Do(params)
+
 	if len(rJSON.Errors) > 0 {
 		errArray := make([]string, len(rJSON.Errors))
 		for i, err := range rJSON.Errors {
@@ -169,6 +214,41 @@ func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
 		app.logger.Println("moviesGraphQL3: " + listString)
 		return
 	}
+	if genreId > 0 { //asumo que una genre id nunca puede ser cero
+		response := rJSON.Data.(map[string]interface{})
+		moviesResultsArray := response["genre"].([]interface{})
+		moviesResults := make(map[string][]interface{}, len(moviesResultsArray))
+
+		var genreId int
+
+		re := regexp.MustCompile(`genreId: (\d+)`)
+		match := re.FindStringSubmatch(query)
+		if len(match) > 1 {
+			genreId, err = strconv.Atoi(match[1])
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("moviesGraphQL3: " + err.Error())
+				return
+			}
+		}
+		//getGenreNameByID
+		genreName, err := app.models.DB.GetGenreNameByID(int64(genreId))
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("moviesGraphQL3.1: " + err.Error())
+			return
+		}
+
+		moviesResults[genreName] = moviesResultsArray
+
+		err = app.writeJSON(w, http.StatusOK, moviesResults, "data")
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("moviesGraphQL4: " + err.Error())
+		}
+		return
+	}
+
 	err = app.writeJSON(w, http.StatusOK, rJSON, "")
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
