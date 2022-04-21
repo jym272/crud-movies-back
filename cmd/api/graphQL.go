@@ -63,6 +63,9 @@ var movieType = graphql.NewObject(
 			"genres_list": &graphql.Field{
 				Type: graphql.NewList(genreType),
 			},
+			"poster": &graphql.Field{
+				Type: graphql.String,
+			},
 		},
 	},
 )

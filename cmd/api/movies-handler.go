@@ -3,8 +3,12 @@ package main
 import (
 	"backend/models"
 	"encoding/json"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -114,6 +118,9 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	year, _, _ := movie.ReleaseDate.Date()
 	movie.Year = year
 
+	//add a poster to the movie
+	movie.Poster = getPoster(movie.Title)
+
 	movieIDQuery := r.URL.Query().Get("id")
 	if movieIDQuery != "" {
 		parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
@@ -220,4 +227,67 @@ func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 		app.logger.Println("deleteOneMovie: " + err.Error())
 	}
 
+}
+
+//refactorizando la funcion
+func getPoster(movieTitle string) string {
+	type MovieDBType struct {
+		Page    int `json:"page"`
+		Results []struct {
+			Adult            bool    `json:"adult"`
+			BackdropPath     *string `json:"backdrop_path"`
+			GenreIds         []int   `json:"genre_ids"`
+			Id               int     `json:"id"`
+			OriginalLanguage string  `json:"original_language"`
+			OriginalTitle    string  `json:"original_title"`
+			Overview         string  `json:"overview"`
+			Popularity       float64 `json:"popularity"`
+			PosterPath       string  `json:"poster_path"`
+			ReleaseDate      string  `json:"release_date"`
+			Title            string  `json:"title"`
+			Video            bool    `json:"video"`
+			VoteAverage      float64 `json:"vote_average"`
+			VoteCount        int     `json:"vote_count"`
+		} `json:"results"`
+		TotalPages   int `json:"total_pages"`
+		TotalResults int `json:"total_results"`
+	}
+
+	client := &http.Client{}
+	apiKey := "f6646a0386887b9fd168de141c70bd9b"
+	//https://api.themoviedb.org/3/search/movie?api_key=f6646a0386887b9fd168de141c70bd9b&query=the%20shawshank%20redemption
+	title := url.QueryEscape(movieTitle)
+	urlString := "https://api.themoviedb.org/3/search/movie?api_key=" + apiKey + "&query=" + title
+	req, err := http.NewRequest("GET", urlString, nil)
+	if err != nil {
+		fmt.Println(err)
+		return "" //return the movie without poster
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return "" //return the movie without poster
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("getPoster", err)
+		}
+	}(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return "" //return the movie without poster
+	}
+	var movieDB MovieDBType
+	err = json.Unmarshal(body, &movieDB)
+	if err != nil {
+		fmt.Println(err)
+		return "" //return the movie without poster
+	}
+	if len(movieDB.Results) > 0 {
+		return movieDB.Results[0].PosterPath
+	}
+	return ""
 }

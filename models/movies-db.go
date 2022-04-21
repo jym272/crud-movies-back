@@ -53,9 +53,9 @@ func (m *DBModel) GetMovie(id int64) (*Movie, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at, updated_at FROM movies WHERE id = $1" //? doesn't work, use $1
+	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at, updated_at,coalesce(poster,'') FROM movies WHERE id = $1" //? doesn't work, use $1
 	//QueryRowContext is a slow operation, so we use context to cancel it
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt)
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt, &movie.Poster)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (m *DBModel) GetMovie(id int64) (*Movie, error) {
 func (m *DBModel) GetAll() ([]*Movie, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at, updated_at FROM movies ORDER BY title"
+	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies ORDER BY title"
 	rows, err := m.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (m *DBModel) GetAll() ([]*Movie, error) {
 	for rows.Next() {
 		movie := &Movie{}
 
-		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt)
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt, &movie.Poster)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +132,7 @@ func (m *DBModel) GetGenres() ([]*Genre, error) {
 func (m *DBModel) GetMoviesByGenreWithID(genreID int64) ([]*Movie, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "SELECT movies.id, title, description, year, release_date, runtime, rating,mpaa_rating,movies.created_at, movies.updated_at FROM movies  INNER JOIN movies_genres ON movies.id = movies_genres.movie_id INNER JOIN genres ON movies_genres.genre_id = genres.id WHERE genre_id = $1 ORDER BY movies.title"
+	query := "SELECT movies.id, title, description, year, release_date, runtime, rating,mpaa_rating,movies.created_at, movies.updated_at, coalesce(poster,'') FROM movies  INNER JOIN movies_genres ON movies.id = movies_genres.movie_id INNER JOIN genres ON movies_genres.genre_id = genres.id WHERE genre_id = $1 ORDER BY movies.title"
 	rows, err := m.DB.QueryContext(ctx, query, genreID)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (m *DBModel) GetMoviesByGenreWithID(genreID int64) ([]*Movie, error) {
 	for rows.Next() {
 		movie := &Movie{}
 
-		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt)
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt, &movie.Poster)
 		if err != nil {
 			return nil, err
 		}
@@ -178,8 +178,8 @@ func (m *DBModel) GetGenreNameByID(genreID int64) (string, error) {
 func (m *DBModel) UpdateMovie(id int64, movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "UPDATE movies SET title = $1, description = $2, year = $3, release_date = $4, runtime = $5, rating = $6, mpaa_rating = $7, updated_at = $8 WHERE id = $9"
-	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), id)
+	query := "UPDATE movies SET title = $1, description = $2, year = $3, release_date = $4, runtime = $5, rating = $6, mpaa_rating = $7, updated_at = $8, poster= $9 WHERE id = $10"
+	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), movie.Poster, id)
 	if err != nil {
 		return err
 	}
@@ -203,8 +203,8 @@ func (m *DBModel) UpdateMovie(id int64, movie *Movie) error {
 func (m *DBModel) InsertMovie(movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "INSERT INTO movies (title, description, year, release_date, runtime, rating, mpaa_rating, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
-	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), time.Now())
+	query := "INSERT INTO movies (title, description, year, release_date, runtime, rating, mpaa_rating, created_at, updated_at, poster) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), time.Now(), movie.Poster)
 	if err != nil {
 		return err
 	}
@@ -246,6 +246,26 @@ func (m *DBModel) DeleteMovie(id int64) error {
 	return nil
 }
 
+func (m *DBModel) GetUser(username string) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT id, username, password, created_at, updated_at FROM users WHERE username = $1"
+	var user User
+	err := m.DB.QueryRowContext(ctx, query, username).Scan(&user.ID, &user.Username, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
 
-
-
+func (m *DBModel) ValidateUser(userId int64, username string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT id, username, password, created_at, updated_at FROM users WHERE id = $1 AND username = $2"
+	var user User
+	err := m.DB.QueryRowContext(ctx, query, userId, username).Scan(&user.ID, &user.Username, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return false
+	}
+	return true
+}

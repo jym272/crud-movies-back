@@ -56,9 +56,9 @@ func (app *Application) checkToken(next http.Handler) http.Handler {
 			if claims, ok := token_.Claims.(jwt.MapClaims); ok {
 				//fmt.Println(claims["id"], claims["nbf"])
 				//TODO: se peude usar extraer informacion del token respecto al usuario y router acorde a eso
-				//actuar, por ahora solo tengo un usuario valida hardcodedado, luego hay que chequear en la database
 				userID := claims["id"].(float64)
-				if userID == 10 { //valid user in tokens.go
+				userName := claims["email"].(string)
+				if app.models.DB.ValidateUser(int64(userID), userName) { //valid user in tokens.go
 					next.ServeHTTP(w, r)
 					return
 				} else {

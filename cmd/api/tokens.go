@@ -3,6 +3,7 @@ package main
 import (
 	"backend/models"
 	"encoding/json"
+	"errors"
 	"github.com/golang-jwt/jwt"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
@@ -17,12 +18,11 @@ type Credentials struct {
 
 var validUser = models.User{
 	ID:       10,
-	Name:     "John Doe",
-	Email:    "jym272@gmail.com",
-	Password: generateHasPassword("password"),
+	Username: "jym272@gmail.com",
+	Password: generateHashPassword("password"),
 }
 
-func generateHasPassword(password string) string {
+func generateHashPassword(password string) string {
 	fromPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return "password"
@@ -40,22 +40,24 @@ func (app *Application) signinHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 	//TODO: later we will check the user in the database
-
-	if credentials.Username != validUser.Email {
-		app.errorJSON(w, http.StatusUnauthorized, err) //invalid credentials
-		app.logger.Println("signinHandler2: " + err.Error())
+	var user *models.User
+	user, err = app.models.DB.GetUser(credentials.Username)
+	if err != nil {
+		errorMsg := "user not found"
+		app.errorJSON(w, http.StatusUnauthorized, errors.New(errorMsg)) //invalid credentials
+		app.logger.Println("signinHandler2: " + errorMsg)
 		return
 	}
 
-	hashedPassword := validUser.Password
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
 	if err != nil {
-		app.errorJSON(w, http.StatusUnauthorized, err) //invalid credentials
+		errorMsg := "invalid password"
+		app.errorJSON(w, http.StatusUnauthorized, errors.New(errorMsg)) //invalid credentials
 		app.logger.Println("signinHandler3: " + err.Error())
 		return
 	}
 
-	token, err := app.createToken(validUser)
+	token, err := app.createToken(user)
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
 		app.logger.Println("signinHandler4: " + err.Error())
@@ -68,12 +70,11 @@ func (app *Application) signinHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 }
 
-func (app *Application) createToken(user models.User) (string, error) {
+func (app *Application) createToken(user *models.User) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = user.ID
-	claims["name"] = user.Name
-	claims["email"] = user.Email
+	claims["email"] = user.Username
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 	claims["iat"] = time.Now().Unix()
 	claims["nbf"] = time.Now().Unix()
