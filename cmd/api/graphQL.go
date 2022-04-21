@@ -221,20 +221,6 @@ func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
 		response := rJSON.Data.(map[string]interface{})
 		moviesResultsArray := response["genre"].([]interface{})
 		moviesResults := make(map[string][]interface{}, len(moviesResultsArray))
-
-		var genreId int
-
-		re := regexp.MustCompile(`genreId: (\d+)`)
-		match := re.FindStringSubmatch(query)
-		if len(match) > 1 {
-			genreId, err = strconv.Atoi(match[1])
-			if err != nil {
-				app.errorJSON(w, http.StatusInternalServerError, err)
-				app.logger.Println("moviesGraphQL3: " + err.Error())
-				return
-			}
-		}
-		//getGenreNameByID
 		genreName, err := app.models.DB.GetGenreNameByID(int64(genreId))
 		if err != nil {
 			app.errorJSON(w, http.StatusInternalServerError, err)
