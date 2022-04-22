@@ -44,8 +44,9 @@ func main() {
 	flag.StringVar(&config.env, "env", "development", "Application environment(development|production")
 	//postgres://user:password@host/dbname?sslmode=disable
 	flag.StringVar(&config.db.dsn, "db-dsn", "postgres://postgres:adini@localhost/movies?sslmode=disable", "Postgres Database connection string")
-	flag.StringVar(&config.secretKey, "secret-key", "AllYourBase", "Secret key")
 	flag.Parse()
+
+	config.secretKey = os.Getenv("JWT_SECRET_KEY")
 
 	logger := log.New(os.Stdout, "Server: ", log.LstdFlags)
 	db, err := openDB(config.db.dsn)
