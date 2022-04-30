@@ -171,7 +171,7 @@ func (app *Application) moviesGraphQL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q, err := ioutil.ReadAll(r.Body) //manage err later
+	q, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
 		app.logger.Println("moviesGraphQL2: " + err.Error())

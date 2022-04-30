@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/golang-jwt/jwt"
+	"golang.org/x/net/context"
 	"net/http"
 	"strings"
 )
@@ -59,7 +60,10 @@ func (app *Application) checkToken(next http.Handler) http.Handler {
 				userID := claims["id"].(float64)
 				userName := claims["email"].(string)
 				if app.models.DB.ValidateUser(int64(userID), userName) { //valid user in tokens.go
-					next.ServeHTTP(w, r)
+					//pass the userId to the next handler
+					ctx := context.WithValue(r.Context(), "userId", int64(userID))
+					next.ServeHTTP(w, r.WithContext(ctx))
+
 					return
 				} else {
 					app.errorJSON(w, http.StatusUnauthorized, errors.New("unauthorized - invalid user"))

@@ -11,3 +11,5 @@ require (
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5
 )
+
+require github.com/dlclark/regexp2 v1.4.0 // indirect

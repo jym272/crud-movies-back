@@ -257,6 +257,16 @@ func (m *DBModel) GetUser(username string) (*User, error) {
 	}
 	return &user, nil
 }
+func (m *DBModel) CreateUser(user_ *User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "INSERT INTO users (username, password, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	_, err := m.DB.ExecContext(ctx, query, user_.Username, user_.Password, time.Now(), time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (m *DBModel) ValidateUser(userId int64, username string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

@@ -21,6 +21,8 @@ func (app *Application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/status", app.statusHandler)
 	router.POST("/v1/signin", app.signinHandler)
+	router.POST("/v1/signup", app.signupHandler)
+
 	router.HandlerFunc(http.MethodPost, "/v1/graphql", app.moviesGraphQL)
 	router.GET("/v1/admin/delete", app.wrap(secure.ThenFunc(app.deleteOneMovie)))
 

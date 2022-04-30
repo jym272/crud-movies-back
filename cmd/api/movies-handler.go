@@ -101,6 +101,13 @@ func (app *Application) getGenres(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
+
+	// read userID from the request context
+	userID := r.Context().Value("userId").(int64)
+	println("userID: ", userID)
+
+	//TODO:later compera the owner of the movie with the userID
+
 	type response struct {
 		Message string `json:"message"`
 		Status  int    `json:"status"`
