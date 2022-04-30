@@ -200,11 +200,27 @@ func (m *DBModel) UpdateMovie(id int64, movie *Movie) error {
 
 	return nil
 }
+
+func (m *DBModel) IsOwner(movieID int64, userID int64) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT id FROM movies WHERE id = $1 AND user_id = $2"
+	var id int64
+	err := m.DB.QueryRowContext(ctx, query, movieID, userID).Scan(&id)
+	if err != nil {
+		return false, err
+	}
+	if id > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (m *DBModel) InsertMovie(movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "INSERT INTO movies (title, description, year, release_date, runtime, rating, mpaa_rating, created_at, updated_at, poster) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
-	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), time.Now(), movie.Poster)
+	query := "INSERT INTO movies (title, description, year, release_date, runtime, rating, mpaa_rating, created_at, updated_at, poster, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+	_, err := m.DB.ExecContext(ctx, query, movie.Title, movie.Description, movie.Year, movie.ReleaseDate, movie.Runtime, movie.Rating, movie.MPAARating, time.Now(), time.Now(), movie.Poster, movie.UserID)
 	if err != nil {
 		return err
 	}
@@ -262,6 +278,16 @@ func (m *DBModel) CreateUser(user_ *User) error {
 	defer cancel()
 	query := "INSERT INTO users (username, password, created_at, updated_at) VALUES ($1, $2, $3, $4)"
 	_, err := m.DB.ExecContext(ctx, query, user_.Username, user_.Password, time.Now(), time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (m *DBModel) UpdateUserPasswordByUsername(username string, password string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "UPDATE users SET password = $1, updated_at = $2 WHERE username = $3"
+	_, err := m.DB.ExecContext(ctx, query, password, time.Now(), username)
 	if err != nil {
 		return err
 	}

@@ -36,6 +36,7 @@ type Movie struct {
 	MovieGenres map[int]string `json:"genres"`
 	Genres      []*Genre       `json:"genres_list"` //for graphql
 	Poster      string         `json:"poster"`
+	UserID      int64          `json:"user_id"`
 }
 
 type Genre struct {

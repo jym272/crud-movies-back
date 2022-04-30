@@ -17,10 +17,13 @@
 --     alter column updated_at set default now();
 
 -- create a new table for users: id, username, password, created_at, updated_at
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(255) NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP NOT NULL DEFAULT now()
-);
+-- CREATE TABLE users (
+--   id SERIAL PRIMARY KEY,
+--   username VARCHAR(255) NOT NULL,
+--   password VARCHAR(255) NOT NULL,
+--   created_at TIMESTAMP NOT NULL DEFAULT now(),
+--   updated_at TIMESTAMP NOT NULL DEFAULT now()
+-- );
+-- add a column to the table movies: user_id
+alter table movies
+    add column user_id integer;

@@ -3,12 +3,14 @@ package main
 import (
 	"backend/models"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 )
 
@@ -104,7 +106,6 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 
 	// read userID from the request context
 	userID := r.Context().Value("userId").(int64)
-	println("userID: ", userID)
 
 	//TODO:later compera the owner of the movie with the userID
 
@@ -118,7 +119,7 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		app.errorJSON(w, http.StatusBadRequest, err)
-		app.logger.Println("editOneMovie: " + err.Error())
+		app.logger.Println("editOneMovie1: " + err.Error())
 		return
 	}
 	//extract year from movie.release_date
@@ -133,22 +134,30 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 		parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
 		if err != nil {
 			app.errorJSON(w, http.StatusBadRequest, err)
-			app.logger.Println("editOneMovie: " + err.Error())
+			app.logger.Println("editOneMovie2: " + err.Error())
 			return
 		}
 		//check if the movie exists
 		exist, err := app.models.DB.MovieExists(parseMovieID)
 		if err != nil {
 			app.errorJSON(w, http.StatusInternalServerError, err)
-			app.logger.Println("editOneMovie: " + err.Error())
+			app.logger.Println("editOneMovie3: " + err.Error())
 			return
 		}
 		if exist {
+			//check if the user is the owner of the movie
+			isOwner, err := app.models.DB.IsOwner(parseMovieID, userID)
+			if !isOwner || err != nil {
+				app.errorJSON(w, http.StatusUnauthorized, errors.New("you are not the owner of this movie"))
+				app.logger.Println("editOneMovie4: " + err.Error())
+				return
+			}
+
 			//update the movie
 			err = app.models.DB.UpdateMovie(parseMovieID, &movie)
 			if err != nil {
 				app.errorJSON(w, http.StatusInternalServerError, err)
-				app.logger.Println("editOneMovie: " + err.Error())
+				app.logger.Println("editOneMovie5: " + err.Error())
 				return
 			}
 
@@ -165,10 +174,13 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} //create new movie: if there is no movieID in the query or if the movieID is not found in the database, or if the movieID 0 ->this id does not exist
+
+	//update the userId to the movie
+	movie.UserID = userID
 	err = app.models.DB.InsertMovie(&movie)
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
-		app.logger.Println("editOneMovie: " + err.Error())
+		app.logger.Println("editOneMovie6: " + err.Error())
 		return
 	}
 	_response := response{
@@ -178,11 +190,15 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	err = app.writeJSON(w, http.StatusOK, _response, "")
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
-		app.logger.Println("editOneMovie: " + err.Error())
+		app.logger.Println("editOneMovie7: " + err.Error())
 	}
 }
 
 func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
+
+	// read userID from the request context
+	userID := r.Context().Value("userId").(int64)
+	println("userID", userID)
 
 	type response struct {
 		Message string `json:"message"`
@@ -193,22 +209,29 @@ func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 		parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
 		if err != nil {
 			app.errorJSON(w, http.StatusBadRequest, err)
-			app.logger.Println("deleteOneMovie: " + err.Error())
+			app.logger.Println("deleteOneMovie1: " + err.Error())
 			return
 		}
 		//check if the movie exists
 		exist, err := app.models.DB.MovieExists(parseMovieID)
 		if err != nil {
 			app.errorJSON(w, http.StatusInternalServerError, err)
-			app.logger.Println("deleteOneMovie: " + err.Error())
+			app.logger.Println("deleteOneMovie2: " + err.Error())
 			return
 		}
 		if exist {
+			//check if the user is the owner of the movie
+			isOwner, err := app.models.DB.IsOwner(parseMovieID, userID)
+			if !isOwner || err != nil {
+				app.errorJSON(w, http.StatusUnauthorized, errors.New("you are not the owner of this movie"))
+				app.logger.Println("deleteOneMovie4: " + err.Error())
+				return
+			}
 			//delete the movie
 			err = app.models.DB.DeleteMovie(parseMovieID)
 			if err != nil {
 				app.errorJSON(w, http.StatusInternalServerError, err)
-				app.logger.Println("deleteOneMovie1: " + err.Error())
+				app.logger.Println("deleteOneMovie5: " + err.Error())
 				return
 			}
 			_response := response{
@@ -218,7 +241,7 @@ func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 			err = app.writeJSON(w, http.StatusOK, _response, "")
 			if err != nil {
 				app.errorJSON(w, http.StatusInternalServerError, err)
-				app.logger.Println("deleteOneMovie: " + err.Error())
+				app.logger.Println("deleteOneMovie6: " + err.Error())
 			}
 			return
 		}
@@ -231,7 +254,7 @@ func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 	err := app.writeJSON(w, http.StatusNotFound, _response, "")
 	if err != nil {
 		app.errorJSON(w, http.StatusInternalServerError, err)
-		app.logger.Println("deleteOneMovie: " + err.Error())
+		app.logger.Println("deleteOneMovie7: " + err.Error())
 	}
 
 }
@@ -261,7 +284,9 @@ func getPoster(movieTitle string) string {
 	}
 
 	client := &http.Client{}
-	apiKey := "f6646a0386887b9fd168de141c70bd9b"
+
+	apiKey := os.Getenv("API_KEY_MOVIE_DB")
+
 	//https://api.themoviedb.org/3/search/movie?api_key=f6646a0386887b9fd168de141c70bd9b&query=the%20shawshank%20redemption
 	title := url.QueryEscape(movieTitle)
 	urlString := "https://api.themoviedb.org/3/search/movie?api_key=" + apiKey + "&query=" + title
