@@ -35,6 +35,8 @@ func (app *Application) errorJSON(w http.ResponseWriter, status int, err error) 
 		"error": err.Error(),
 	}, "")
 	if errJSON != nil {
+		//panic
 		app.logger.Println("errorJSON:", errJSON)
+		panic(errJSON)
 	}
 }

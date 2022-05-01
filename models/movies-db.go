@@ -335,3 +335,70 @@ func (m *DBModel) ValidateUser(userId int64, username string) bool {
 	}
 	return true
 }
+
+func (m *DBModel) IsFav(movieId int64, userId int64) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT id FROM favorite_movies WHERE movie_id = $1 AND user_id = $2"
+	var id int64
+	err := m.DB.QueryRowContext(ctx, query, movieId, userId).Scan(&id)
+	if err != nil {
+		return false
+	}
+	return true
+}
+func (m *DBModel) AddToFav(movieId int64, userId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "INSERT INTO favorite_movies (movie_id, user_id, created_at) VALUES ($1, $2, $3)"
+	_, err := m.DB.ExecContext(ctx, query, movieId, userId, time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (m *DBModel) RemoveFromFav(movieId int64, userId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "DELETE FROM favorite_movies WHERE movie_id = $1 AND user_id = $2"
+	_, err := m.DB.ExecContext(ctx, query, movieId, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (m *DBModel) GetFavorites(userId int64) ([]*Movie, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies WHERE id IN (SELECT movie_id FROM favorite_movies WHERE user_id = $1)"
+	rows, err := m.DB.QueryContext(ctx, query, userId)
+
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(rows)
+	movies := make([]*Movie, 0)
+	for rows.Next() {
+		movie := &Movie{}
+
+		err = rows.Scan(&movie.ID, &movie.Title, &movie.Description, &movie.Year, &movie.ReleaseDate, &movie.Runtime, &movie.Rating, &movie.MPAARating, &movie.CreatedAt, &movie.UpdatedAt, &movie.Poster)
+		if err != nil {
+			return nil, err
+		}
+
+		genres, err := getGenres(m, movie.ID, ctx)
+		if err != nil {
+			return nil, err
+		}
+		movie.MovieGenres = *genres
+
+		movies = append(movies, movie)
+	}
+	return movies, nil
+}

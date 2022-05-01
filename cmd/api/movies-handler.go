@@ -206,6 +206,76 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *Application) favoritesHandler(w http.ResponseWriter, r *http.Request) {
+
+	userID := r.Context().Value("userId").(int64)
+	movieIDQuery := r.URL.Query().Get("movie")
+	action := r.URL.Query().Get("action")
+
+	if action == "list" {
+		//get all the favorites of the user
+		movies_, err := app.models.DB.GetFavorites(userID)
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("favoritesHandler1: " + err.Error())
+			return
+		}
+		err = app.writeJSON(w, http.StatusOK, movies_, "movies")
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("getAllMovies: " + err.Error())
+		}
+		return
+	}
+
+	parseMovieID, err := strconv.ParseInt(movieIDQuery, 10, 64)
+	if err != nil {
+		app.errorJSON(w, http.StatusBadRequest, err)
+		app.logger.Println("addToFav1: " + err.Error())
+		return
+	}
+	isFav := app.models.DB.IsFav(parseMovieID, userID)
+	//switch action
+	switch action {
+	case "query":
+		var data string
+		if isFav {
+			data = "favorite"
+		} else {
+			data = "not favorite"
+		}
+		err = app.writeJSON(w, http.StatusOK, data, "")
+	case "add":
+		//add to favorite_movies table
+		if !isFav {
+			err = app.models.DB.AddToFav(parseMovieID, userID)
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("addToFav3: " + err.Error())
+				return
+			}
+		}
+		err = app.writeJSON(w, http.StatusOK, "added", "")
+	case "remove":
+		//remove from favorite_movies table
+		if isFav {
+			err = app.models.DB.RemoveFromFav(parseMovieID, userID)
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("addToFav5: " + err.Error())
+				return
+			}
+		}
+		err = app.writeJSON(w, http.StatusOK, "removed", "")
+	default:
+		err = app.writeJSON(w, http.StatusBadRequest, "invalid action", "error")
+	}
+	if err != nil { //repeat code
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("addToFav7: " + err.Error())
+	}
+}
+
 func (app *Application) getMyMovies(w http.ResponseWriter, r *http.Request) {
 	// read userID from the request context
 	userID := r.Context().Value("userId").(int64)

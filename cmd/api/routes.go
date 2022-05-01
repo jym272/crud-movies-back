@@ -25,6 +25,8 @@ func (app *Application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/graphql", app.moviesGraphQL)
 
+	router.GET("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler)))
+
 	router.GET("/v1/admin", app.wrap(secure.ThenFunc(app.getMyMovies)))
 
 	router.GET("/v1/admin/delete", app.wrap(secure.ThenFunc(app.deleteOneMovie)))
