@@ -75,7 +75,6 @@ func (app *Application) getAllMovies(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			app.errorJSON(w, http.StatusNotFound, err)
 			app.logger.Println("getAllMovies: " + err.Error())
-			//http.Error(w, "Movie not found", http.StatusNotFound)
 			return
 		}
 		err = app.writeJSON(w, http.StatusOK, movies, "movies")
@@ -122,6 +121,7 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 		app.logger.Println("editOneMovie1: " + err.Error())
 		return
 	}
+
 	//extract year from movie.release_date
 	year, _, _ := movie.ReleaseDate.Date()
 	movie.Year = year
@@ -174,6 +174,18 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} //create new movie: if there is no movieID in the query or if the movieID is not found in the database, or if the movieID 0 ->this id does not exist
+	////prevent movie title duplication
+	movieExist, err := app.models.DB.MovieTitleExist(movie.Title)
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("editOneMovie: " + err.Error())
+		return
+	}
+	if movieExist {
+		msg := "movie title already exist"
+		app.errorJSON(w, http.StatusBadRequest, errors.New(msg))
+		return
+	}
 
 	//update the userId to the movie
 	movie.UserID = userID
@@ -194,11 +206,28 @@ func (app *Application) editOneMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *Application) getMyMovies(w http.ResponseWriter, r *http.Request) {
+	// read userID from the request context
+	userID := r.Context().Value("userId").(int64)
+
+	//get the movies of the user
+	movies, err := app.models.DB.GetAll(userID)
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("getMyMovies1: " + err.Error())
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, movies, "movies")
+	if err != nil {
+		app.errorJSON(w, http.StatusInternalServerError, err)
+		app.logger.Println("getMyMovies2: " + err.Error())
+	}
+}
+
 func (app *Application) deleteOneMovie(w http.ResponseWriter, r *http.Request) {
 
 	// read userID from the request context
 	userID := r.Context().Value("userId").(int64)
-	println("userID", userID)
 
 	type response struct {
 		Message string `json:"message"`

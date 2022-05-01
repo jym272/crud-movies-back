@@ -32,6 +32,24 @@ func getGenres(m *DBModel, movieId int64, ctx context.Context) (*map[int]string,
 	return &movieGenres, nil
 
 }
+
+func (m *DBModel) MovieTitleExist(title string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	query := "SELECT id FROM movies WHERE title = $1"
+
+	rows := m.DB.QueryRowContext(ctx, query, title)
+	var id int64
+	err := rows.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (m *DBModel) MovieExists(id int64) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
@@ -68,11 +86,23 @@ func (m *DBModel) GetMovie(id int64) (*Movie, error) {
 	return movie, nil
 
 }
-func (m *DBModel) GetAll() ([]*Movie, error) {
+func (m *DBModel) GetAll(userID ...int64) ([]*Movie, error) {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies ORDER BY title"
-	rows, err := m.DB.QueryContext(ctx, query)
+
+	var rows *sql.Rows
+	var err error
+
+	if len(userID) > 0 {
+		userID_ := userID[0]
+		query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies WHERE user_id = $1 ORDER BY title"
+		rows, err = m.DB.QueryContext(ctx, query, userID_)
+
+	} else {
+		query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies ORDER BY title"
+		rows, err = m.DB.QueryContext(ctx, query)
+	}
 	if err != nil {
 		return nil, err
 	}

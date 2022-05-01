@@ -24,6 +24,11 @@
 --   created_at TIMESTAMP NOT NULL DEFAULT now(),
 --   updated_at TIMESTAMP NOT NULL DEFAULT now()
 -- );
--- add a column to the table movies: user_id
-alter table movies
-    add column user_id integer;
+-- create a new table: favorite_movies
+CREATE TABLE favorite_movies (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  movie_id INTEGER NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP NOT NULL DEFAULT now()
+);

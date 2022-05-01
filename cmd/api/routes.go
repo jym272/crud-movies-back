@@ -24,6 +24,9 @@ func (app *Application) routes() http.Handler {
 	router.POST("/v1/signup", app.signupHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/graphql", app.moviesGraphQL)
+
+	router.GET("/v1/admin", app.wrap(secure.ThenFunc(app.getMyMovies)))
+
 	router.GET("/v1/admin/delete", app.wrap(secure.ThenFunc(app.deleteOneMovie)))
 
 	router.PUT("/v1/admin/movie", app.wrap(secure.ThenFunc(app.editOneMovie))) //update or create a movie
