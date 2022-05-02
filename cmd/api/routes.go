@@ -27,6 +27,8 @@ func (app *Application) routes() http.Handler {
 
 	router.GET("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler)))
 
+	router.POST("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler)))
+
 	router.GET("/v1/admin", app.wrap(secure.ThenFunc(app.getMyMovies)))
 
 	router.GET("/v1/admin/delete", app.wrap(secure.ThenFunc(app.deleteOneMovie)))

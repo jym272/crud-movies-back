@@ -212,6 +212,31 @@ func (app *Application) favoritesHandler(w http.ResponseWriter, r *http.Request)
 	movieIDQuery := r.URL.Query().Get("movie")
 	action := r.URL.Query().Get("action")
 
+	if action == "retrievefavorites" {
+		type MoviesIDs struct {
+			MovieIdsArray []int64 `json:"ids"`
+		}
+		var movieIDs MoviesIDs
+		err := json.NewDecoder(r.Body).Decode(&movieIDs)
+		if err != nil {
+			app.errorJSON(w, http.StatusBadRequest, err)
+			app.logger.Println("favoritesHandler1: " + err.Error())
+			return
+		}
+		result := make(map[int64]bool, len(movieIDs.MovieIdsArray))
+		for _, movieID := range movieIDs.MovieIdsArray {
+			isFav := app.models.DB.IsFav(movieID, userID)
+			result[movieID] = isFav
+
+		}
+		err = app.writeJSON(w, http.StatusOK, result, "")
+		if err != nil {
+			app.errorJSON(w, http.StatusInternalServerError, err)
+			app.logger.Println("favoritesHandler2: " + err.Error())
+		}
+		return
+	}
+
 	if action == "list" {
 		//get all the favorites of the user
 		movies_, err := app.models.DB.GetFavorites(userID)

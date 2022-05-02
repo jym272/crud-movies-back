@@ -371,7 +371,7 @@ func (m *DBModel) GetFavorites(userId int64) ([]*Movie, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies WHERE id IN (SELECT movie_id FROM favorite_movies WHERE user_id = $1)"
+	query := "SELECT id, title, description, year, release_date, runtime, rating,mpaa_rating,created_at,  updated_at, coalesce(poster,'') FROM movies WHERE id IN (SELECT movie_id FROM favorite_movies WHERE user_id = $1) ORDER BY title"
 	rows, err := m.DB.QueryContext(ctx, query, userId)
 
 	if err != nil {
