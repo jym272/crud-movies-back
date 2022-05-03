@@ -402,3 +402,30 @@ func (m *DBModel) GetFavorites(userId int64) ([]*Movie, error) {
 	}
 	return movies, nil
 }
+
+//			ids, err := app.models.DB.GetMoviesIds()
+func (m *DBModel) GetMoviesIds() ([]int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := "SELECT id FROM movies ORDER BY title"
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(rows)
+	ids := make([]int64, 0)
+	for rows.Next() {
+		var id int64
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}

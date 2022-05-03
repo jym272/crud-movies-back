@@ -16,10 +16,51 @@ import (
 
 func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Get the movie ID from the route
-	//movieID := r.URL.Query().Get("id")
+	adjacent := r.URL.Query().Get("adjacent_ids")
+	type adjacentIds struct {
+		Ids [2]int64 `json:"ids"`
+	}
+
+	type ResponseType struct {
+		Movie       *models.Movie `json:"movie"`
+		AdjacentIds adjacentIds   `json:"adjacent_ids"`
+	}
+
 	movieID := ps.ByName("id")
 	//convert string to int64
 	if id, err := strconv.ParseInt(movieID, 10, 64); err == nil {
+		var response ResponseType
+
+		if adjacent == "true" {
+			//get adjacents ids in the db
+			var adjacent adjacentIds
+			ids, err := app.models.DB.GetMoviesIds()
+			if err != nil {
+				app.errorJSON(w, http.StatusNotFound, err)
+				app.logger.Println("getOneMovie0: " + err.Error())
+				return
+			}
+			//find the adjacent ids of id in the ids array
+			for i := 0; i < len(ids); i++ {
+				if ids[i] == id {
+					if i-1 >= 0 {
+						adjacent.Ids[0] = ids[i-1]
+					} else {
+						//the adjacent is the last movie
+						adjacent.Ids[0] = ids[len(ids)-1]
+					}
+					if i+1 < len(ids) {
+						adjacent.Ids[1] = ids[i+1]
+					} else {
+						//the adjacent is the first movie
+						adjacent.Ids[1] = ids[0]
+					}
+					break
+				}
+			}
+			response.AdjacentIds = adjacent
+		}
+
 		movie, err := app.models.DB.GetMovie(id)
 		if err != nil {
 			app.errorJSON(w, http.StatusNotFound, err)
@@ -27,7 +68,8 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 			//http.Error(w, "Movie not found", http.StatusNotFound)
 			return
 		}
-		err = app.writeJSON(w, http.StatusOK, movie, "movie")
+		response.Movie = movie
+		err = app.writeJSON(w, http.StatusOK, response, "")
 		if err != nil {
 			app.errorJSON(w, http.StatusInternalServerError, err)
 			app.logger.Println("getOneMovie: " + err.Error())
