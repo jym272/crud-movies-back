@@ -403,12 +403,20 @@ func (m *DBModel) GetFavorites(userId int64) ([]*Movie, error) {
 	return movies, nil
 }
 
-//			ids, err := app.models.DB.GetMoviesIds()
-func (m *DBModel) GetMoviesIds() ([]int64, error) {
+func (m *DBModel) GetMoviesIds(genreID int64) ([]int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := "SELECT id FROM movies ORDER BY title"
-	rows, err := m.DB.QueryContext(ctx, query)
+	var rows *sql.Rows
+	var err error
+	if genreID != 0 {
+		query := "SELECT id FROM movies WHERE id IN (SELECT movie_id FROM movies_genres WHERE genre_id = $1) ORDER BY title"
+		rows, err = m.DB.QueryContext(ctx, query, genreID)
+
+	} else {
+		query := "SELECT id FROM movies ORDER BY title"
+		rows, err = m.DB.QueryContext(ctx, query)
+	}
+
 	if err != nil {
 		return nil, err
 	}

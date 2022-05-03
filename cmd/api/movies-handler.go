@@ -22,8 +22,9 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	type ResponseType struct {
-		Movie       *models.Movie `json:"movie"`
-		AdjacentIds adjacentIds   `json:"adjacent_ids"`
+		Movie         *models.Movie `json:"movie"`
+		AdjacentIds   adjacentIds   `json:"adjacent_ids"`
+		WithGenreName string        `json:"with_genre_name"`
 	}
 
 	movieID := ps.ByName("id")
@@ -33,8 +34,28 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 
 		if adjacent == "true" {
 			//get adjacents ids in the db
+
+			withGenre := r.URL.Query().Get("withgenre")
+			var genreID int64
+			if withGenre != "" {
+				genreID, err = strconv.ParseInt(withGenre, 10, 64)
+				if err != nil {
+					app.errorJSON(w, http.StatusInternalServerError, err)
+					app.logger.Println("getOneMovie: " + err.Error())
+					return
+				}
+				//get genre name with id
+				genreNameByID, err := app.models.DB.GetGenreNameByID(genreID)
+				if err != nil {
+					app.errorJSON(w, http.StatusInternalServerError, err)
+					app.logger.Println("getOneMovie: " + err.Error())
+					return
+				}
+				response.WithGenreName = genreNameByID
+			}
+
 			var adjacent adjacentIds
-			ids, err := app.models.DB.GetMoviesIds()
+			ids, err := app.models.DB.GetMoviesIds(genreID)
 			if err != nil {
 				app.errorJSON(w, http.StatusNotFound, err)
 				app.logger.Println("getOneMovie0: " + err.Error())
@@ -104,8 +125,56 @@ func (app *Application) getAllMovies(w http.ResponseWriter, r *http.Request) {
 			app.logger.Println("getAllMovies: " + err.Error())
 			return
 		}
+		//get adjacent genres ids
+		adjacentGenresIdsQuery := r.URL.Query().Get("adjacent_genres_ids")
+		type adjacent struct {
+			Id   int64  `json:"id"`
+			Name string `json:"name"`
+		}
+		type adjacentGenresType struct {
+			Next *adjacent `json:"next"`
+			Prev *adjacent `json:"previous"`
+		}
+		//make ajacentGenresType
+		var adjacentGenres = &adjacentGenresType{}
 
-		err = app.writeJSON(w, http.StatusOK, movies, genreName)
+		if adjacentGenresIdsQuery == "true" {
+			genres, err = app.models.DB.GetGenres()
+			if err != nil {
+				app.errorJSON(w, http.StatusInternalServerError, err)
+				app.logger.Println("getAllMovies: " + err.Error())
+				return
+			}
+			//find the adjacent ids of id in the ids array
+			for i := 0; i < len(genres); i++ {
+				if genres[i].ID == parseInt {
+					if i-1 >= 0 {
+						adjacentGenres.Prev = &adjacent{genres[i-1].ID, genres[i-1].Name}
+					} else {
+						//the adjacent is the last movie
+						adjacentGenres.Prev = &adjacent{genres[len(genres)-1].ID, genres[len(genres)-1].Name}
+					}
+					if i+1 < len(genres) {
+						adjacentGenres.Next = &adjacent{genres[i+1].ID, genres[i+1].Name}
+					} else {
+						//the adjacent is the first movie
+						adjacentGenres.Next = &adjacent{genres[0].ID, genres[0].Name}
+					}
+					break
+				}
+			}
+			err = app.writeJSON(w, http.StatusOK, &struct {
+				GenreName      string              `json:"genre_name"`
+				Movies         []*models.Movie     `json:"movies"`
+				AdjacentGenres *adjacentGenresType `json:"adjacent_genres"`
+			}{genreName, movies, adjacentGenres}, "")
+		} else {
+			err = app.writeJSON(w, http.StatusOK, &struct {
+				GenreName string          `json:"genre_name"`
+				Movies    []*models.Movie `json:"movies"`
+			}{genreName, movies}, "")
+		}
+
 		if err != nil {
 			app.errorJSON(w, http.StatusInternalServerError, err)
 			app.logger.Println("getAllMovies: " + err.Error())
