@@ -29,8 +29,8 @@ type Movie struct {
 	Runtime           int                    `json:"runtime"`
 	Rating            float32                `json:"rating"`
 	MPAARating        string                 `json:"mpaa_rating"`
-	CreatedAt         time.Time              `json:"created_at"`
-	UpdatedAt         time.Time              `json:"updated_at"`
+	CreatedAt         time.Time              `json:"-"`
+	UpdatedAt         time.Time              `json:"-"`
 	MovieGenres       map[int]string         `json:"genres"`
 	Genres            []*Genre               `json:"genres_list"`         //for graphql
 	AdjacentMoviesIds *AdjacentMoviesIdsType `json:"adjacent_movies_ids"` //for graphql

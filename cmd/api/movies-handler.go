@@ -35,6 +35,7 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 		if adjacent == "true" {
 			//get adjacents ids in the db
 
+			//with genre
 			withGenre := r.URL.Query().Get("withgenre")
 			var genreID int64
 			if withGenre != "" {
@@ -53,9 +54,10 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 				}
 				response.WithGenreName = genreNameByID
 			}
-
+			//with search
+			search := r.URL.Query().Get("withsearch")
 			var adjacent adjacentIds
-			ids, err := app.models.DB.GetMoviesIds(genreID)
+			ids, err := app.models.DB.GetMoviesIds(genreID, search)
 			if err != nil {
 				app.errorJSON(w, http.StatusNotFound, err)
 				app.logger.Println("getOneMovie0: " + err.Error())
