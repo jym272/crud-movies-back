@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request) {
 	// Get the movie ID from the route
 	adjacent := r.URL.Query().Get("adjacent_ids")
 	type adjacentIds struct {
@@ -27,7 +27,13 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 		WithGenreName string        `json:"with_genre_name"`
 	}
 
+	ps := httprouter.ParamsFromContext(r.Context()) //for a not secure route
 	movieID := ps.ByName("id")
+	if movieID == "" { //maybe the movieID is in a secure route -> fav = true
+		params := r.Context().Value("params").(httprouter.Params)
+		movieID = params.ByName("id")
+	}
+
 	//convert string to int64
 	if id, err := strconv.ParseInt(movieID, 10, 64); err == nil {
 		var response ResponseType
@@ -56,8 +62,16 @@ func (app *Application) getOneMovie(w http.ResponseWriter, r *http.Request, ps h
 			}
 			//with search
 			search := r.URL.Query().Get("withsearch")
+			//with fav
+			fav := r.URL.Query().Get("withfav")
+			var userID int64
+			if fav == "true" { //secure route
+				// read userID from the request context if is a secure route
+				userID = r.Context().Value("userId").(int64)
+			}
+
 			var adjacent adjacentIds
-			ids, err := app.models.DB.GetMoviesIds(genreID, search)
+			ids, err := app.models.DB.GetMoviesIds(genreID, search, userID)
 			if err != nil {
 				app.errorJSON(w, http.StatusNotFound, err)
 				app.logger.Println("getOneMovie0: " + err.Error())

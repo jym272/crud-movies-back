@@ -125,7 +125,7 @@ var fields = graphql.Fields{
 
 				//get adjacents ids in the db
 				var Ids [2]int64
-				ids, err := _app.models.DB.GetMoviesIds(0, "")
+				ids, err := _app.models.DB.GetMoviesIds(0, "", 0)
 				if err != nil {
 					panic(err)
 				}

@@ -25,7 +25,7 @@ func (app *Application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/graphql", app.moviesGraphQL)
 
-	router.GET("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler)))
+	router.GET("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler))) //add,remove fav in db
 
 	router.POST("/v1/user/favorites", app.wrap(secure.ThenFunc(app.favoritesHandler)))
 
@@ -34,8 +34,9 @@ func (app *Application) routes() http.Handler {
 	router.GET("/v1/admin/delete", app.wrap(secure.ThenFunc(app.deleteOneMovie)))
 
 	router.PUT("/v1/admin/movie", app.wrap(secure.ThenFunc(app.editOneMovie))) //update or create a movie
+	router.GET("/v1/admin/favorites/:id", app.wrap(secure.ThenFunc(app.getOneMovie)))
 
-	router.GET("/v1/movie/:id", app.getOneMovie)
+	router.HandlerFunc(http.MethodGet, "/v1/movie/:id", app.getOneMovie)
 
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.getAllMovies)
 	router.HandlerFunc(http.MethodGet, "/v1/genres", app.getGenres)
